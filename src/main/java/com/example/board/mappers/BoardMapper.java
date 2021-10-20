@@ -1,6 +1,7 @@
 package com.example.board.mappers;
 
 import com.example.board.beans.vo.BoardVO;
+import com.example.board.beans.vo.Criteria;
 import org.apache.ibatis.annotations.Mapper;
 
 import java.util.List;
@@ -11,7 +12,7 @@ import java.util.List;
 @Mapper
 public interface BoardMapper {
 //    게시글 목록
-    public List<BoardVO> getList();
+    public List<BoardVO> getList(Criteria criteria);
 //    게시글 추가
     public void insert(BoardVO board);
 //    게시글 추가(PK가져오기)
@@ -22,4 +23,6 @@ public interface BoardMapper {
     public int update(BoardVO board);
 //    게시글 삭제
     public int delete(Long bno);
+//    게시글 전체 개수
+    public int getTotal(Criteria criteria);
 }

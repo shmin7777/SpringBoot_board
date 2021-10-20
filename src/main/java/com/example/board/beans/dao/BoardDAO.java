@@ -1,6 +1,7 @@
 package com.example.board.beans.dao;
 
 import com.example.board.beans.vo.BoardVO;
+import com.example.board.beans.vo.Criteria;
 import com.example.board.mappers.BoardMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,8 +32,9 @@ public class BoardDAO {
         return mapper.delete(bno) == 1;
     }
 
-    public List<BoardVO> getList(){
-        return mapper.getList();
+    public List<BoardVO> getList(Criteria criteria){
+        return mapper.getList(criteria);
     }
 
+    public int getTotal(Criteria criteria){ return mapper.getTotal(criteria); }
 }

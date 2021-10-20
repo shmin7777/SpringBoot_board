@@ -1,6 +1,7 @@
 package com.example.board.beans.dao;
 
 import com.example.board.beans.vo.BoardVO;
+import com.example.board.beans.vo.Criteria;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -54,7 +55,7 @@ public class BoardDAO_test {
 
     @Test
     public void testGetList(){
-        boardDAO.getList().forEach(board -> log.info(board.toString()));
+        Criteria criteria = new Criteria();
+        boardDAO.getList(criteria).forEach(board -> log.info(board.toString()));
     }
-
 }

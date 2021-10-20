@@ -1,10 +1,246 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
+    <title>Board</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+    <meta name="description" content="" />
+    <meta name="keywords" content="" />
+    <link rel="stylesheet" href="/css/main.css" />
+    <style>
+        .uploadResult {
+            width: 100%;
+        }
 
+        .uploadResult ul {
+            display: flex;
+            justify-content: center;
+        }
+
+        .uploadResult ul li {
+            list-style: none;
+            padding: 10px;
+        }
+    </style>
+</head>
+<body class="is-preload">
+<!-- Main -->
+<div id="main">
+    <div class="wrapper">
+        <div class="inner">
+
+            <!-- Elements -->
+            <header class="major">
+                <h1>Board</h1>
+                <p>게시글 수정</p>
+            </header>
+            <h3><a id="goList" href="javascript:void(0)" class="button small">목록 보기</a></h3>
+            <div class="content">
+                <div class="form">
+                    <form method="post" action="/board/modify" id="modifyForm">
+                        <div class="fields" th:object="${board}">
+                            <div class="field">
+                                <h4>번호</h4>
+                                <input name="bno" type="text" th:field="*{bno}" readonly/>
+                            </div>
+                            <div class="field">
+                                <h4>*제목</h4>
+                                <input name="title" type="text" th:field="*{title}"/>
+                            </div>
+                            <div class="field">
+                                <h4>*내용</h4>
+                                <textarea name="content" rows="6" style="resize:none" th:text="*{content}"></textarea>
+                            </div>
+                            <div class="field">
+                                <h4>작성자</h4>
+                                <input name="writer" type="text" th:field="*{writer}" readonly/>
+                            </div>
+                            <div class="field">
+                                <h4>*첨부파일</h4>
+                                <input type="file" name="uploadFiles" multiple>
+                            </div>
+                            <div class="field">
+                                <div class="uploadResult">
+                                    <ul></ul>
+                                </div>
+                            </div>
+                            <div class="bigPictureWrapper">
+                                <div class="bigPicture"></div>
+                            </div>
+                        </div>
+                        <ul class="actions special">
+                            <li>
+                                <input type="submit" class="button" value="수정 완료"/>
+                            </li>
+                        </ul>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Scripts -->
+<script src="/js/jquery.min.js"></script>
+<script src="/js/jquery.dropotron.min.js"></script>
+<script src="/js/browser.min.js"></script>
+<script src="/js/breakpoints.min.js"></script>
+<script src="/js/util.js"></script>
+<script src="/js/main.js"></script>
 </body>
+<script th:inline="javascript">
+    let paging = [[${criteria.listLink}]];
+
+    $("a#goList").on("click", function(){
+        location.href = "/board/list" + paging;
+    });
+
+    let check = false;
+    function showImage(fileCallPath){
+        if(check) {return;}
+        $(".bigPictureWrapper").css("display", "flex").show();
+        $(".bigPicture").html("<img src='/upload/display?fileName=" + encodeURIComponent(fileCallPath) + "'>")
+            .animate({width:"100%", height:"100%"}, 1000);
+        check = true;
+    }
+
+    $(".bigPictureWrapper").on("click", function(){
+        if(!check){return;}
+        $(".bigPicture").animate({width: "0%", height: "0%"}, 1000);
+        setTimeout(function(){
+            check = false;
+            $(".bigPictureWrapper").hide();
+        }, 1000)
+    })
+
+    $("input[type='submit']").on("click", function(e){
+        e.preventDefault();
+        let form = $("form#modifyForm");
+        let str = "";
+        $(".uploadResult ul li").each(function(i, obj){
+            str += "<input type='hidden' name='attachList[" + i + "].fileName' value='" + $(obj).data('name') + "'>"
+            str += "<input type='hidden' name='attachList[" + i + "].uuid' value='" + $(obj).data('uuid') + "'>"
+            str += "<input type='hidden' name='attachList[" + i + "].uploadPath' value='" + $(obj).data('path') + "'>"
+            str += "<input type='hidden' name='attachList[" + i + "].image' value='" + $(obj).data('type') + "'>"
+        });
+        form.append(str).submit();
+    })
+
+    $(document).ready(function(){
+        let regex = new RegExp("(.*?)\.(exe|sh|zip|alz)$");
+        let maxSize = 5242880;// 5MB
+        let inputFile = $(".uploadDiv input");
+        let uploadResult = $(".uploadResult ul");
+        let bno = [[${board.bno}]];
+
+        function showUploadFile(uploadFiles){
+            let str = "";
+            $(uploadFiles).each(function(i, obj){
+                if(!obj.image){
+                    let fileCallPath = encodeURIComponent(obj.uploadPath + "/" + obj.fileName);
+
+                    str += "<li data-path='" + obj.uploadPath + "' data-uuid='" + obj.uuid + "' data-name='" + obj.fileName.substring(obj.fileName.indexOf("_") + 1) + "' data-type='" + obj.image +"'>";
+                    str += "<div>";
+                    str += "<a href='/upload/download?fileName=" + fileCallPath + "'>";
+                    str += "<img src='/img/attach.png' width='100px'>" + obj.fileName.substring(obj.fileName.indexOf("_") + 1);
+                    str += "</a>"
+                    str += "<span data-file='" + fileCallPath + "' data-type='file'>x</span>";
+                    str += "</div>";
+                    str += "</li>";
+                }else{
+                    let fileCallPath = encodeURIComponent(obj.uploadPath + "/s_" + obj.fileName);
+                    let originPath = encodeURIComponent(obj.uploadPath + "/" + obj.fileName);
+
+                    str += "<li data-path='" + obj.uploadPath + "' data-uuid='" + obj.uuid + "' data-name='" + obj.fileName.substring(obj.fileName.indexOf("_") + 1) + "' data-type='" + obj.image +"'>";
+                    str += "<div>";
+                    str += "<a href=\"javascript:showImage(\'" + originPath + "\')\">";
+                    str += "<img src='/upload/display?fileName=" + fileCallPath + "'>" + obj.fileName.substring(obj.fileName.indexOf("_") + 1);
+                    str += "</a>";
+                    str += "<span data-file='" + fileCallPath + "' data-type='image'>x</span>";
+                    str += "</div>";
+                    str += "</li>";
+                }
+            });
+            uploadResult.append(str);
+        }
+
+        //확장자 별 업로드 제한, 특정 크기 이상의 파일은 업로드 제한
+        function checkExtension(fileName, fileSize){
+            if(regex.test(fileName)){
+                alert("업로드 할 수 없는 파일의 형식입니다.");
+                return false;
+            }
+            if(fileSize >= maxSize){
+                alert("파일 사이즈 초과");
+                return false;
+            }
+            return true;
+        }
+
+        $("input[type='file']").change(function(){
+            let formData = new FormData();
+            let inputFile = $("input[name='uploadFiles']");
+            let files = inputFile[0].files;
+
+            for(let i=0; i<files.length; i++){
+                if(!checkExtension(files[i].name, files[i].size)){ return; }
+                formData.append("uploadFiles", files[i]);
+            }
+
+            $.ajax({
+                url: "/upload/uploadAjaxAction",
+                type: "post",
+                data: formData,
+                contentType: false,
+                processData: false,
+                success: function(fileList){
+                    showUploadFile(fileList);
+                    inputFile.val("");
+                }
+            });
+        });
+
+        (function(){
+            console.log(bno);
+            $.getJSON("/board/getAttachList", {bno: bno},
+                function(arr){
+                    console.log(arr);
+                    let str = "";
+
+                    $(arr).each(function(i, attach){
+                        if(!attach.image){
+                            let fileCallPath = encodeURIComponent(attach.uploadPath + "/" + attach.uuid + "_" + attach.fileName);
+                            str += "<li data-path='" + attach.uploadPath + "' data-uuid='" + attach.uuid + "' data-name='" + attach.fileName.substring(attach.fileName.indexOf("_") + 1) + "' data-type='" + attach.image +"'>";
+                            str += "<div>";
+                            str += "<a href='/upload/download?fileName=" + fileCallPath + "'>";
+                            str += "<img src='/img/attach.png' width='100px'>" + attach.fileName.substring(attach.fileName.indexOf("_") + 1);
+                            str += "</a>"
+                            str += "<span data-file='" + fileCallPath + "' data-type='image'>x</span>";
+                            str += "</div>";
+                            str += "</li>";
+                        }else{
+                            let fileCallPath = encodeURIComponent(attach.uploadPath + "/s_" + attach.uuid + "_" + attach.fileName);
+                            let originPath = encodeURIComponent(attach.uploadPath + "/" + attach.uuid + "_" + attach.fileName);
+
+                            str += "<li data-path='" + attach.uploadPath + "' data-uuid='" + attach.uuid + "' data-name='" + attach.fileName.substring(attach.fileName.indexOf("_") + 1) + "' data-type='" + attach.image +"'>";
+                            str += "<div>";
+                            str += "<a href=\"javascript:showImage(\'" + originPath + "\')\">";
+                            str += "<img src='/upload/display?fileName=" + fileCallPath + "'>" + attach.fileName.substring(attach.fileName.indexOf("_") + 1);
+                            str += "</a>";
+                            str += "<span data-file='" + fileCallPath + "' data-type='image'>x</span>";
+                            str += "</div>";
+                            str += "</li>";
+                        }
+                    });
+                    uploadResult.html(str);
+                });//getJSON
+        })();
+    });
+
+    $(".uploadResult").on("click", "span", function(){
+        let targetFile = $(this).data("file");
+        let type = $(this).data("type");
+        let li = $(this).parents("li");
+        li.remove();
+    });
+</script>
 </html>

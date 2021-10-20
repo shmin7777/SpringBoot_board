@@ -3,5 +3,7 @@
 <configuration>
     <typeAliases>
         <typeAlias type="com.example.board.beans.vo.BoardVO" alias="boardVO"/>
+        <typeAlias type="com.example.board.beans.vo.ReplyVO" alias="replyVO"/>
+        <typeAlias type="com.example.board.beans.vo.AttachFileVO" alias="attachFileVO"/>
     </typeAliases>
 </configuration>

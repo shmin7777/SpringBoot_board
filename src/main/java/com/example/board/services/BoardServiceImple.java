@@ -1,9 +1,13 @@
 package com.example.board.services;
 
+import com.example.board.beans.dao.AttachFileDAO;
 import com.example.board.beans.dao.BoardDAO;
+import com.example.board.beans.vo.AttachFileVO;
 import com.example.board.beans.vo.BoardVO;
+import com.example.board.beans.vo.Criteria;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -21,10 +25,20 @@ import java.util.List;
 public class BoardServiceImple implements BoardService{
 
     private final BoardDAO boardDAO;
+    private final AttachFileDAO attachFileDAO;
 
+    @Transactional(rollbackFor = Exception.class)
     @Override
     public void register(BoardVO board) {
         boardDAO.register(board);
+        if(board.getAttachList() == null || board.getAttachList().size() == 0){
+            return;
+        }
+
+        board.getAttachList().forEach(attach -> {
+            attach.setBno(board.getBno());
+            attachFileDAO.insert(attach);
+        });
     }
 
     @Override
@@ -32,9 +46,21 @@ public class BoardServiceImple implements BoardService{
         return boardDAO.get(bno);
     }
 
+    @Transactional(rollbackFor = Exception.class)
     @Override
     public boolean modify(BoardVO board) {
-        return boardDAO.modify(board);
+        boolean boardModifyResult = false;
+
+        attachFileDAO.deleteAll(board.getBno());
+        boardModifyResult = boardDAO.modify(board);
+
+        if(boardModifyResult && board.getAttachList() != null && board.getAttachList().size() != 0){
+            board.getAttachList().forEach(attach -> {
+                attach.setBno(board.getBno());
+                attachFileDAO.insert(attach);
+            });
+        }
+        return boardModifyResult;
     }
 
     @Override
@@ -43,7 +69,13 @@ public class BoardServiceImple implements BoardService{
     }
 
     @Override
-    public List<BoardVO> getList() {
-        return boardDAO.getList();
+    public List<BoardVO> getList(Criteria criteria) { return boardDAO.getList(criteria); }
+
+    @Override
+    public int getTotal(Criteria criteria) { return boardDAO.getTotal(criteria); }
+
+    @Override
+    public List<AttachFileVO> getAttachList(Long bno) {
+        return attachFileDAO.findByBno(bno);
     }
 }

@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.board.mappers.ReplyMapper">
+    <insert id="insert">
+        INSERT INTO TBL_REPLY (RNO, BNO, REPLY, REPLIER)
+        VALUES (SEQ_REPLY.NEXTVAL, #{bno}, #{reply}, #{replier})
+    </insert>
+
+    <select id="read" resultType="replyVO">
+        SELECT RNO, BNO, REPLY, REPLIER, REPLYDATE, UPDATEDATE FROM TBL_REPLY
+        WHERE RNO = #{rno}
+    </select>
+
+    <delete id="delete">
+        DELETE FROM TBL_REPLY WHERE RNO = #{rno}
+    </delete>
+
+    <update id="update">
+        UPDATE TBL_REPLY
+        SET REPLY = #{reply}, UPDATEDATE = SYSDATE
+        WHERE RNO = #{rno}
+    </update>
+
+    <select id="getListWithPaging" resultType="replyVO">
+        <![CDATA[
+        SELECT RNO, BNO, REPLY, REPLIER, REPLYDATE, UPDATEDATE
+        FROM
+        (
+            SELECT /*+ INDEX_DESC(TBL_REPLY PK_REPLY) */
+            ROWNUM R, RNO, BNO, REPLY, REPLIER, REPLYDATE, UPDATEDATE
+            FROM TBL_REPLY
+            WHERE BNO = #{bno}
+            AND ROWNUM <= #{criteria.pageNum} * #{criteria.amount}
+        )
+        WHERE R > (#{criteria.pageNum} - 1) * #{criteria.amount}
+        ]]>
+    </select>
+
+    <select id="getTotal" resultType="_int">
+        SELECT COUNT(RNO) FROM TBL_REPLY WHERE BNO = #{bno}
+    </select>
+</mapper>

@@ -1,10 +1,388 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
+    <title>Board</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+    <meta name="description" content="" />
+    <meta name="keywords" content="" />
+    <link rel="stylesheet" href="/css/main.css" />
+    <style>
+        .line{
+            border-bottom: 1px solid #ff8b77;
+        }
+        p {
+            margin: 0;
+        }
+        .uploadResult {
+            width: 100%;
+        }
 
+        .uploadResult ul {
+            display: flex;
+            justify-content: center;
+        }
+
+        .uploadResult ul li {
+            list-style: none;
+            padding: 10px;
+        }
+    </style>
+</head>
+<body class="is-preload">
+<!-- Main -->
+<div id="main">
+    <div class="wrapper">
+        <div class="inner">
+
+            <!-- Elements -->
+            <header class="major">
+                <h1>Board</h1>
+                <p>게시글 상세보기</p>
+            </header>
+            <!-- Table -->
+            <h3><a id="goList" href="javascript:void(0)" class="button small">목록 보기</a></h3>
+            <div class="content">
+                <div class="form">
+                    <form method="post" action="/board/remove">
+                        <div class="fields" th:object="${board}">
+                            <div class="field">
+                                <h4>번호</h4>
+                                <input name="bno" type="text" th:field="*{bno}" readonly/>
+                            </div>
+                            <div class="field">
+                                <h4>제목</h4>
+                                <input name="title" type="text" th:field="*{title}" readonly/>
+                            </div>
+                            <div class="field">
+                                <h4>내용</h4>
+                                <textarea name="content" rows="6" style="resize:none" th:text="*{content}" readonly></textarea>
+                            </div>
+                            <div class="field">
+                                <h4>작성자</h4>
+                                <input name="writer" type="text" th:field="*{writer}" readonly/>
+                            </div>
+                            <div class="field">
+                                <h4>첨부파일</h4>
+                            </div>
+                            <div class="field">
+                                <div class="uploadResult">
+                                    <ul></ul>
+                                </div>
+                            </div>
+                            <div class="bigPictureWrapper">
+                                <div class="bigPicture"></div>
+                            </div>
+                        </div>
+                        <ul class="actions special">
+                            <li>
+                                <input type="button" class="button" value="수정" onclick="goUpdate()"/>
+                                <input type="submit" class="button" value="삭제"/>
+                            </li>
+                        </ul>
+                        <ul class="icons">
+                            <li style="display: block">
+                                <span class="icon solid fa-envelope"></span>
+                                <strong>댓글</strong>
+                            </li>
+                        </ul>
+                        <a href="javascript:void(0)" class="register button primary small" style="width: 100%">댓글 등록</a>
+                        <div style="display: none" class="register-form">
+                            <div>
+                                <h4>작성자</h4>
+                                <input type="text" name="replier" placeholder="Replier">
+                            </div>
+                            <div>
+                                <h4>댓글</h4>
+                                <textarea rows="6" name="reply" placeholder="Reply" style="resize: none"></textarea>
+                            </div>
+                            <div style="text-align: right">
+                                <a href="javascript:void(0)" class="finish button primary small">등록</a>
+                                <a href="javascript:void(0)" class="cancel button primary small">취소</a>
+                            </div>
+                        </div>
+                        <ul class="replies"></ul>
+                    </form>
+                    <div class="paging" style="text-align: center"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<p>
+
+</p>
+<!-- Scripts -->
+<script src="/js/jquery.min.js"></script>
+<script src="/js/jquery.dropotron.min.js"></script>
+<script src="/js/browser.min.js"></script>
+<script src="/js/breakpoints.min.js"></script>
+<script src="/js/util.js"></script>
+<script src="/js/main.js"></script>
+<script src="/js/reply.js"></script>
 </body>
+<script th:inline="javascript">
+    let bno = [[${board.getBno()}]];
+    let paging = [[${criteria.listLink}]];
+    let replyUL = $("ul.replies");
+    let uploadResult = $(".uploadResult ul");
+    let pageNum = 1;
+
+    let showCheck = false;
+    function showImage(fileCallPath){
+        if(showCheck) {return;}
+        $(".bigPictureWrapper").css("display", "flex").show();
+        $(".bigPicture").html("<img src='/upload/display?fileName=" + encodeURIComponent(fileCallPath) + "'>")
+            .animate({width:"100%", height:"100%"}, 1000);
+        showCheck = true;
+    }
+
+    $(".bigPictureWrapper").on("click", function(){
+        if(!showCheck){return;}
+        $(".bigPicture").animate({width: "0%", height: "0%"}, 1000);
+        setTimeout(function(){
+            showCheck = false;
+            $(".bigPictureWrapper").hide();
+        }, 1000)
+    })
+
+    $(document).ready(function(){
+        (function(){
+            console.log(bno);
+            $.getJSON("/board/getAttachList", {bno: bno},
+                function(arr){
+                    console.log(arr);
+                    let str = "";
+
+                    $(arr).each(function(i, attach){
+                        if(!attach.image){
+                            let fileCallPath = encodeURIComponent(attach.uploadPath + "/" + attach.uuid + "_" + attach.fileName);
+                            str += "<li>";
+                            str += "<div>";
+                            str += "<a href='/upload/download?fileName=" + fileCallPath + "'>";
+                            str += "<img src='/img/attach.png' width='100px'>" + attach.fileName.substring(attach.fileName.indexOf("_") + 1);
+                            str += "</a>"
+                            str += "</div>";
+                            str += "</li>";
+                        }else{
+                            let fileCallPath = encodeURIComponent(attach.uploadPath + "/s_" + attach.uuid + "_" + attach.fileName);
+                            let originPath = encodeURIComponent(attach.uploadPath + "/" + attach.uuid + "_" + attach.fileName);
+
+                            str += "<li>";
+                            str += "<div>";
+                            str += "<a href=\"javascript:showImage(\'" + originPath + "\')\">";
+                            str += "<img src='/upload/display?fileName=" + fileCallPath + "'>" + attach.fileName.substring(attach.fileName.indexOf("_") + 1);
+                            str += "</a>";
+                            str += "</div>";
+                            str += "</li>";
+                        }
+                    });
+                    uploadResult.html(str);
+            });//getJSON
+        })();
+    });
+
+    showList(pageNum);
+
+    $(".register").on("click", function(e){
+        e.preventDefault();
+        $(".register-form").show();
+        $(this).hide();
+    })
+
+    $(".cancel").on("click", function(e){
+        e.preventDefault();
+        $("input[name='replier']").val("");
+        $("textarea[name='reply']").val("");
+        $(".register-form").hide();
+        $(".register").show();
+    })
+
+    $(".finish").on("click", function(e){
+        e.preventDefault();
+        let replier = $("input[name='replier']").val();
+        let reply = $("textarea[name='reply']").val();
+
+        if(!replier || !reply){return;}
+
+        replyService.add({bno:bno, reply:reply, replier:replier},
+            function(result){
+                alert(result);
+                $("input[name='replier']").val("");
+                $("textarea[name='reply']").val("");
+                $(".register-form").hide();
+                $(".register").show();
+                showList(pageNum);
+            }
+        )
+    });
+
+    function goUpdate(){
+        location.href = "/board/modify" + paging + "&bno=" + bno;
+    }
+
+    $("a#goList").on("click", function(){
+        location.href = "/board/list" + paging;
+    });
+
+    function showReplyPage(replyCnt){
+        let endNum = Math.ceil(pageNum / 10.0) * 10;
+        let startNum = endNum - 9;
+        let realEnd = Math.ceil(replyCnt / 10.0);
+        let divTag = $(".paging");
+        let str = "";
+
+        if(endNum > realEnd){
+            endNum = realEnd;
+        }
+
+        let prev = startNum != 1;
+        let next = endNum * 10 < replyCnt;
+
+        //917px 까지
+        if(matchMedia("screen and (max-width:918px)").matches){
+            if(pageNum > 1){
+                str += "<a class='changePage' href='" + (pageNum - 1) + "'><code>&lt;</code></a>"
+            }
+            str += "<code>" + pageNum + "</code>";
+            if(pageNum < realEnd){
+                str += "<a class='changePage' href='" + (pageNum + 1) + "'><code>&gt;</code></a>"
+            }
+
+        }else{//918px 이상
+            if(prev){
+                str += "<a class='changePage' href='" + (startNum - 1) + "'><code>&lt;</code></a>"
+            }
+            for(let i=startNum; i<=endNum; i++){
+                if(i == pageNum){
+                    str += "<code>" + i + "</code>";
+                    continue;
+                }
+                str += "<a class='changePage' href='" + i + "'><code>" + i + "</code></a>";
+            }
+            if(next){
+                str += "<a class='changePage' href='" + (endNum + 1) + "'><code>&gt;</code></a>"
+            }
+        }
+        divTag.html(str);
+    }
+
+    //이벤트 위임
+    //작성된 HTML에는 이벤트 처리가 가능하지만,
+    //DOM에서 새롭게 추가되는 HTML에는 이벤트가 반영되지 않는다.
+    //따라서 미리 작성해놓은 HTML에 이벤트를 반영한 후,
+    //해당 자식 태그를 선택하여 이벤트 위임을 진행해야 한다.
+    $("div.paging").on("click", "a.changePage", function(e){
+        e.preventDefault();
+        pageNum = parseInt($(this).attr("href"));
+        showList(pageNum);
+    });
+
+    function showList(page){
+        replyService.getList({bno:bno, page:page || 1},
+            function(replyCnt, list){
+                if(list == null || list.length == 0){
+                    replyUL.html("댓글이 없습니다.");
+                    return;
+                }
+                let str = "";
+                for(let i=0, len=list.length; i<len; i++){
+                    str += "<li style='display: block' data-rno='" + list[i].rno + "'>"
+                    str += "<strong>" + list[i].replier + "</strong>"
+                    str += "<div>"
+                    str += "<p class='reply" + list[i].rno +"'>" + list[i].reply + "</p>"
+                    str += "<p><strong class='date'>" + replyService.displayTime(list[i].replyDate);
+                    if(list[i].replyDate != list[i].updateDate){
+                        str += "<br>수정된 날짜 " + replyService.displayTime(list[i].updateDate);
+                    }
+                    str += "</strong></p></div>"
+                    str += "<div style='text-align: right'><a class='modify' href='" + list[i].rno + "'>수정</a>"
+                    str += "<a class='finish' style='display: none' href='" + list[i].rno + "'>수정완료</a>"
+                    str += "&nbsp;&nbsp;<a class='remove' href='" + list[i].rno + "'>삭제</a>"
+                    str += "</div></li>"
+                    str += "<div class='line'></div>"
+                }
+                replyUL.html(str);
+                showReplyPage(replyCnt);
+            }
+        );
+    }
+
+    let check = false;
+
+    $(".replies").on("click", "a.modify", function(e){
+        e.preventDefault();
+        if(check){alert("수정 중인 댓글이 있습니다."); return;}
+        let rnoValue = $(this).attr("href");
+        $("p.reply" + rnoValue).html("<textarea class='" + rnoValue + "'>" + $("p.reply" + rnoValue).text() + "</textarea>")
+        $(this).hide();
+
+        let arFinish = $(".finish");
+        for(let i=0; i<arFinish.length; i++){
+            if($(arFinish[i]).attr("href") == rnoValue){
+                $(arFinish[i]).show();
+                check = true;
+                break;
+            }
+        }
+    });
+
+    $(".replies").on("click", "a.finish", function(e){
+        e.preventDefault();
+
+        let rnoValue = $(this).attr("href");
+        let newReply = $("." + rnoValue).val();
+
+        if(newReply == ""){return;}
+
+        replyService.update({rno:rnoValue, reply:newReply},
+            function(result){
+                alert(result);
+                check = false;
+                showList(pageNum);
+            }
+        )
+    })
+
+    //댓글 삭제
+    $(".replies").on("click", "a.remove", function(e){
+        e.preventDefault();
+        let rnoValue = $(this).attr("href");
+        replyService.remove(rnoValue,
+            function(result){
+                alert(result);
+                showList(pageNum);
+            }
+        );
+    })
+
+    // $(document).ready(function(){
+        // console.log("=========");
+        // console.log("JS TEST");
+
+        // replyService.getList({bno:bno},
+        //     function(list){
+        //         console.log(list);
+        //     }
+        // )
+
+        // replyService.update({rno:11, bno:bno, reply:"Modified Reply"},
+        //     function(result){
+        //         alert("RESULT : " + result);
+        //     }
+        // )
+
+        // replyService.remove(21,
+        //     function(result){
+        //         alert("RESULT : " + result);
+        //     }
+        // );
+
+        // replyService.add({bno:bno,reply:"JS TEST",replier:"tester"},
+        //     function(result){
+        //         alert("RESULT : " + result);
+        //     }
+        // );
+    // });
+</script>
 </html>
