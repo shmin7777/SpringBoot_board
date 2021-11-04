@@ -1,6 +1,8 @@
 package com.example.board.services;
 
+import com.example.board.beans.vo.AttachFileVO;
 import com.example.board.beans.vo.BoardVO;
+import com.example.board.beans.vo.Criteria;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -17,5 +19,7 @@ public interface BoardService {
     public BoardVO get(Long bno);
     public boolean modify(BoardVO board);
     public boolean remove(Long bno);
-    public List<BoardVO> getList();
+    public List<BoardVO> getList(Criteria criteria);
+    public int getTotal(Criteria criteria);
+    public List<AttachFileVO> getAttachList(Long bno);
 }

@@ -2,9 +2,45 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
 <mapper namespace="com.example.board.mappers.BoardMapper">
+
+    <sql id="search">
+        <if test="type != null and keyword != null">
+            <trim prefix="(" suffix=") AND " prefixOverrides="OR">
+                <foreach item="type" collection="typeArr">
+                    <trim prefix="OR">
+                        <choose>
+                            <when test="type == 'T'.toString()">
+                                (TITLE LIKE '%'||#{keyword}||'%')
+                            </when>
+                            <when test="type == 'C'.toString()">
+                                (CONTENT LIKE '%'||#{keyword}||'%')
+                            </when>
+                            <when test="type == 'W'.toString()">
+                                (WRITER LIKE '%'||#{keyword}||'%')
+                            </when>
+                        </choose>
+                    </trim>
+                </foreach>
+            </trim>
+        </if>
+    </sql>
+
     <select id="getList" resultType="boardVO">
         <![CDATA[
-        SELECT * FROM TBL_BOARD WHERE BNO > 0
+        SELECT BNO, TITLE, CONTENT, WRITER, REGDATE, UPDATEDATE
+        FROM
+        (
+            /*알리아스를 붙인 컬럼에 WHERE절에서 접근할 때에는 FROM절에 작성된 테이블의 컬럼과 동일한 이름으로만 사용이 가능하다.*/
+            SELECT /*+ INDEX_DESC(TBL_BOARD PK_BOARD) */
+            ROWNUM R, BNO, TITLE, CONTENT, WRITER, REGDATE, UPDATEDATE
+            FROM TBL_BOARD
+            WHERE
+        ]]>
+        <include refid="search"></include>
+        <![CDATA[
+        ROWNUM <= #{pageNum} * #{amount}
+        )
+        WHERE R > (#{pageNum} - 1) * #{amount}
         ]]>
     </select>
 
@@ -44,4 +80,13 @@
     <delete id="delete">
         DELETE FROM TBL_BOARD WHERE BNO = #{bno}
     </delete>
+
+    <select id="getTotal" resultType="_int">
+        SELECT COUNT(BNO) FROM TBL_BOARD
+        <where>
+            <trim suffixOverrides="AND">
+            <include refid="search"></include>
+            </trim>
+        </where>
+    </select>
 </mapper>

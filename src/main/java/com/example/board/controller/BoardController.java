@@ -1,19 +1,25 @@
 package com.example.board.controller;
 
+import com.example.board.beans.vo.AttachFileVO;
 import com.example.board.beans.vo.BoardVO;
+import com.example.board.beans.vo.Criteria;
+import com.example.board.beans.vo.PageDTO;
 import com.example.board.services.BoardService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import org.springframework.web.servlet.view.RedirectView;
 
 import javax.servlet.http.HttpServletRequest;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.List;
 
 //    프레젠테이션 계층의 구현
 
@@ -32,11 +38,12 @@ public class BoardController {
     private final BoardService boardService;
 
     @GetMapping("list")
-    public String list(Model model){
+    public String list(Criteria criteria, Model model){
         log.info("-------------------------------");
         log.info("list");
         log.info("-------------------------------");
-        model.addAttribute("list", boardService.getList());
+        model.addAttribute("list", boardService.getList(criteria));
+        model.addAttribute("pageMaker", new PageDTO(boardService.getTotal(criteria), 10, criteria));
         return "board/list";
     }
 
@@ -45,6 +52,10 @@ public class BoardController {
         log.info("-------------------------------");
         log.info("register : " + boardVO.toString());
         log.info("-------------------------------");
+
+        if(boardVO.getAttachList() != null){
+            boardVO.getAttachList().forEach(attach -> log.info(attach.toString()));
+        }
 
         boardService.register(boardVO);
 
@@ -58,7 +69,7 @@ public class BoardController {
 
 //    여러 요청을 하나의 메소드로 받을 때에는 {}를 사용하여 콤마로 구분한다.
     @GetMapping({"read", "modify"})
-    public void read(@RequestParam("bno") Long bno, Model model, HttpServletRequest request){
+    public void read(@RequestParam("bno") Long bno, Criteria criteria, Model model, HttpServletRequest request){
         String reqURI = request.getRequestURI();
         String reqType = reqURI.substring(reqURI.indexOf(request.getContextPath()) + 7);
         //read 요청 시 read 출력
@@ -68,6 +79,7 @@ public class BoardController {
         log.info("-------------------------------");
 
         model.addAttribute("board", boardService.get(bno));
+        model.addAttribute("criteria", criteria);
     }
 
 //    /modify 요청을 처리할 수 있는 비지니스 로직 작성
@@ -96,7 +108,10 @@ public class BoardController {
         log.info("remove : " + bno);
         log.info("-------------------------------");
 
+        List<AttachFileVO> attachList = boardService.getAttachList(bno);
+
         if (boardService.remove(bno)) {
+            deleteFiles(attachList);
             rttr.addFlashAttribute("result", "success");
         } else {
             rttr.addFlashAttribute("result", "fail");
@@ -104,9 +119,41 @@ public class BoardController {
         return new RedirectView("list");
     }
 
+    private void deleteFiles(List<AttachFileVO> attachList){
+        if(attachList == null || attachList.size() == 0){
+            return;
+        }
+
+        log.info("delete attach files...........");
+        log.info(attachList.toString());
+
+        attachList.forEach(attach -> {
+            try {
+                Path file = Paths.get("C:/upload/" + attach.getUploadPath() + "/" + attach.getUuid() + "_" + attach.getFileName());
+                Files.delete(file);
+
+                if(Files.probeContentType(file).startsWith("image")){
+                    Path thumbnail = Paths.get("C:/upload/" + attach.getUploadPath() + "/s_" + attach.getUuid() + "_" + attach.getFileName());
+                    Files.delete(thumbnail);
+                }
+            } catch (Exception e) {
+                log.error("delete file error " + e.getMessage());
+            }
+        });
+
+
+    }
+
     @GetMapping("register")
     public void register(){}
 
+//    게시글 첨부파일
+    @GetMapping(value = "getAttachList", produces = MediaType.APPLICATION_JSON_VALUE)
+    @ResponseBody
+    public List<AttachFileVO> getAttachList(Long bno){
+        log.info("getAttachList " + bno);
+        return boardService.getAttachList(bno);
+    }
 }
 
 

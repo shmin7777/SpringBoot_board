@@ -1,6 +1,7 @@
 package com.example.board.mappers;
 
 import com.example.board.beans.vo.BoardVO;
+import com.example.board.beans.vo.Criteria;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,7 +16,10 @@ public class BoardMapperTest {
 
     @Test
     public void testGetList(){
-        mapper.getList().forEach(board -> log.info(board.toString()));
+        Criteria cri = new Criteria();
+        cri.setPageNum(2);
+        cri.setAmount(10);
+        mapper.getList(cri).forEach(board -> log.info(board.toString()));
     }
 
     @Test

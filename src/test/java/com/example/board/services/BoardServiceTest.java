@@ -1,6 +1,7 @@
 package com.example.board.services;
 
 import com.example.board.beans.vo.BoardVO;
+import com.example.board.beans.vo.Criteria;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -48,6 +49,7 @@ public class BoardServiceTest {
 
     @Test
     public void testGetList(){
-        boardService.getList().forEach(board -> log.info(board.toString()));
+        Criteria criteria = new Criteria();
+        boardService.getList(criteria).forEach(board -> log.info(board.toString()));
     }
 }
